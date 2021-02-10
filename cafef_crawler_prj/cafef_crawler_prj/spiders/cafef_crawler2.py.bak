@@ -1,0 +1,46 @@
+# -*- coding: utf-8 -*-
+
+import scrapy
+import sys
+from pathlib import Path
+
+sys.path.append(str(Path('.').absolute().parent))
+
+from basecrawler import basenewsspider
+
+
+class CafefCrawlerSpider(basenewsspider.NewsSpider):
+    name = 'cafef_crawler'
+    allowed_domains = ['cafef.vn']
+    web_link = "http://cafef.vn"
+    start_urls = [web_link]
+
+    _urls = [web_link + "/timeline/112/trang-{0}.chn",
+             web_link + "/timeline/31/trang-{0}.chn",
+             web_link + "/timeline/35/trang-{0}.chn",
+             web_link + "/timeline/36/trang-{0}.chn",
+             web_link + "/timeline/34/trang-{0}.chn",
+             web_link + "/timeline/32/trang-{0}.chn",
+             web_link + "/timeline/33/trang-{0}.chn",
+             web_link + "/timeline/114/trang-{0}.chn",
+             web_link + "/timeline/39/trang-{0}.chn"
+             ]
+
+    extra_cat_dict = {'kinh tế vĩ mô - đầu tư': 'economy', 'thị trường chứng khoán': 'stock',
+                      'tài chính - ngân hàng': 'finance', 'tài chính quốc tế': 'finance',
+                      'hàng hóa - nguyên liệu': 'goods'}
+
+    def __init__(self, *a, **kwargs):
+        super(CafefCrawlerSpider, self).__init__(*a, **kwargs)
+        super(CafefCrawlerSpider, self).init_attributes(
+                        base_urls=self._urls,
+                        link_pattern="//li[contains(@class, 'item')]//h3/a/@href",
+                        title_pattern="//h1[contains(@class, 'title')]//text()",
+                        summary_pattern="//h2[contains(@class, 'sapo')]//text()",
+                        text_pattern="//div[contains(@id, 'contentdetail')]//p//span/text()",
+                        tag_pattern="//div[contains(@class, 'tag')]//div//a//text()",
+                        category_pattern="//div[contains(@class, 'share')]//p/a//text()",
+                        start_pageid=1,
+                        end_pageid=4400,
+                        browsing="pageid",
+                        extra_cat_dict=self.extra_cat_dict)

@@ -1,0 +1,105 @@
+# -*- coding: utf-8 -*-
+import scrapy
+from scrapy.spiders import CrawlSpider, Rule
+from scrapy.linkextractors import LinkExtractor
+from thanhnien_crawler_prj.items import ThanhnienCrawlerItem
+
+
+class ThanhnienCrawlerSpider(CrawlSpider):
+    name = 'thanhnien_crawler'
+    allowed_domains = ['thanhnien.vn']
+    start_urls = ['https://thanhnien.vn']
+    allow_expr = (r'/thoi-su/.*\.html', r'/the-gioi/.*\.html', r'/van-hoa/.*\.html', r'thethao.thanhnien.vn/.*\.html', r'/doi-song/.*\.html',
+                  r'/kinh-doanh/.*\.html', r'/gioi-tre/.*\.html', r'/giao-duc/.*\.html', r'/cong-nghe/.*\.html',
+                  r'/suc-khoe/.*\.html', r'xe.thanhnien.vn/.*\.html', )
+
+    rules = (Rule(LinkExtractor(allow=allow_expr), callback='parse_news_contents', follow=True),)
+
+    categoryDict = {'thời sự': 'news', 'thế giới': 'world', 'kinh doanh': 'business', 'giải trí': 'entertainment',
+                    'thể thao': 'sport', 'pháp luật': 'legal', 'giáo dục': 'education', 'gia đình': 'family',
+                    'du lịch': 'travel', 'khoa học': 'science', 'số hóa': 'technology', 'xe': 'vehicle',
+                    'cộng đồng': 'community', 'doanh nghiệp': 'company', 'quân sự': 'military',
+                    'quốc tế': 'international',
+                    'bất động sản': 'real estate', 'ebank': 'bank', 'ngân hàng': 'bank', 'thương mại': 'commerce',
+                    'thương mại điện tử': 'commerce', 'chứng khoán': 'stock', 'phim': 'film', 'nhạc': 'music',
+                    'thời trang': 'fashion', 'truyền hình': 'tv', 'sách': 'book', 'bóng đá': 'football',
+                    'tổ ấm': 'home', 'chăm con': 'child care', 'nhà đẹp': 'house', 'tiêu dùng': 'consumer',
+                    'nội trợ': 'housework', 'việt nam': 'vietnam', 'sản phẩm': 'product', 'điện tử gia dụng': 'electronic',
+                    'xã hội': 'society', 'yêu': 'love', 'tư vấn': 'advisory', 'tài chính': 'finance',
+                    'đầu tư': 'invest', 'nhà đất': 'real estate', 'điện thoại': 'mobile', 'thiết bị số': 'digital device',
+                    'đánh giá': 'review', 'bảo mật': 'security', 'thủ thuật': 'tips', 'văn hóa': 'culture',
+                    'trải nghiệm - khám phá': 'discover', 'ẩm thực': 'food', 'nhịp sống trẻ': 'youth', 'xu hướng':
+                    'trend', 'khám phá': 'discover', 'việc làm': 'jobs', 'đời sống': 'life', 'văn học': 'literary',
+                    'điện ảnh': 'film', 'hậu trường': 'backstage', 'quần vợt': 'tennis', 'dinh dưỡng': 'nutrition',
+                    'chính trị': 'politic', 'giao thông': 'traffic', 'địa ốc': 'real estate',
+                    'môi trường': 'environment', 'âm nhạc': 'music', 'làm đẹp': 'make up',
+                    'giới tính': 'sex', 'điện tử': 'electronic', 'máy tính': 'computer', 'viễn thông': 'telecommunication',
+                    'di động': 'mobile', 'mạng': 'network', 'phần mềm': 'software',
+                    'pháp lý': 'legal', 'thị trường': 'market', 'tài chính quốc tế': 'finance'
+                    }
+
+    def parse_title(self, response, xpath_pattern):
+        title = ''
+        titles = response.xpath(xpath_pattern).extract()
+        if len(titles) > 0:
+            for str in titles:
+                if len(str.strip()) > 0:
+                    title = str.strip().lower()
+                    break
+        return title
+
+    def parse_summary(self, response, xpath_pattern):
+        summary = ''
+        summaries = response.xpath(xpath_pattern).extract()
+        if len(summaries) != 0:
+            summaries = [x.strip() for x in summaries if len(x.strip()) > 0]
+            summary = " ".join(summaries).lower()
+
+        return summary
+
+    def parse_tags(self, response, xpath_pattern):
+        tagstr = ''
+        tags = response.xpath(xpath_pattern).extract()
+        if len(tags) != 0:
+            tagstr = ",".join([tag.strip().lower() for tag in tags])
+        else:
+            tagstr = ""
+
+        return tagstr
+
+    def parse_categories(self, response, xpath_pattern):
+        catStr = ''
+        categories = response.xpath(xpath_pattern).extract()
+        if len(categories) > 0:
+            catStr = self.categoryDict.get(categories[0].strip().lower(), '')
+            if len(categories) > 1:
+                cat = self.categoryDict.get(categories[1].strip().lower(), '')
+                if cat != '':
+                    catStr = cat
+
+        return catStr
+
+    def parse_paragraphs(self, response, xpath_pattern):
+        paraStr = ''
+        paragraphs = response.xpath(xpath_pattern).extract()
+        if len(paragraphs) != 0:
+            paragraphs = [x.strip() for x in paragraphs if len(x.strip()) > 0]
+            paraStr = " ".join(paragraphs).lower()
+
+        return paraStr
+
+    def parse_news_contents(self, response):
+        item = ThanhnienCrawlerItem()
+
+        item['text'] = self.parse_paragraphs(response, "(//div[contains(@id, 'body')]/div|//div[contains(@id, 'body')]/p|//div[contains(@id, 'body')]/div/p|//div[contains(@id, 'body')]/div/div)/text()")
+        if len(item['text']) != 0:
+            item['title'] = self.parse_title(response, "//h1[contains(@class, title)]/text()")
+            item['summary'] = self.parse_summary(response, "//div[contains(@id, 'chapeau')]//text()")
+            item['text'] = item['title'] + ". " + item['text']
+            item['tags'] = self.parse_tags(response, "//ul[contains(@class, 'tag')]//li//a//text()")
+            item['category'] = self.parse_categories(response, "//meta[contains(@property, 'section')]/@content")
+            item['url'] = response.url
+
+            yield item
+
+

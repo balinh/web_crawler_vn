@@ -1,0 +1,7 @@
+# Create project
+scrapy startproject <project_name>
+cd <project_name>
+scrapy genspider <spider_name> <url>
+
+# Start crawler. NOTE: it can be pause by CTRL+C
+scrapy crawl vnexpress_crawler -s JOBDIR=crawls/vnexpress_crawler
